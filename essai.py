@@ -41,9 +41,14 @@ def open_long(row):
     """
     if (
         row['close'] > row['long_ema']
-        and row['trix'].trix() > 0
-        and row['n1_trix'].trix() > 0
-        and row['n2_trix'].trix() > 0
+        and row['trix'].iloc[-1] > 0
+        and row['n1_trix'].iloc[-1] > 0
+        and row['n2_trix'].iloc[-1] > 0
+    ):
+        return True
+    else:
+        return False
+
     ):
         return True
     else:
@@ -144,7 +149,7 @@ if len(position) > 0:
 
 else:
     print("Aucune position ouverte")
-    if open_long(row) and "long" in type:
+    if open_long(row) and "long" in position_type:
         long_market_price = float(df.iloc[-1]["close"])
         long_quantity_in_usd = usd_balance * leverage
         long_quantity = float(bitget.convert_amount_to_precision(pair, float(
