@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/chemin/vers/repertoire_contenant_utilities')
+sys.path.append('/home/ubuntu/.ssh/essai')
 import ccxt
 import ta
 import pandas as pd
@@ -46,8 +46,7 @@ def open_long(row):
         and row['n2_trix'] > 0
     ):
         return True
-    else:
-        return False
+    return False
 
 def close_long(row):
     """
@@ -56,8 +55,7 @@ def close_long(row):
     """
     if row['close'] < row['short_ema']:
         return True
-    else:
-        return False
+    return False
 
 def open_short(row):
     """
@@ -71,8 +69,7 @@ def open_short(row):
         and row['n2_trix'] < 0
     ):
         return True
-    else:
-        return False
+    return False
 
 def close_short(row):
     """
@@ -81,8 +78,7 @@ def close_short(row):
     """
     if row['close'] > row['long_ema']:
         return True
-    else:
-        return False
+    return False
 
 bitget = PerpBitget(
     apiKey=secret[account_to_select]["apiKey"],
@@ -148,17 +144,12 @@ if len(position) > 0:
 
 else:
     print("Aucune position ouverte")
-   if open_long(row) and "long" in type:
-    long_market_price = float(df.iloc[-1]["close"])
-    long_quantity_in_usd = usd_balance * leverage
-    long_quantity = float(bitget.convert_amount_to_precision(pair, float(
-        bitget.convert_amount_to_precision(pair, long_quantity_in_usd / long_market_price)
-    )))
-else:
-    print("Aucune position ouverte")
-
-else:
-    print("Aucune position ouverte")
+    if open_long(row) and "long" in type:
+        long_market_price = float(df.iloc[-1]["close"])
+        long_quantity_in_usd = usd_balance * leverage
+        long_quantity = float(bitget.convert_amount_to_precision(pair, float(
+            bitget.convert_amount_to_precision(pair, long_quantity_in_usd / long_market_price)
+        )))
         exchange_long_quantity = long_quantity * long_market_price
         print(
             f"Passer un ordre d'achat au marché pour ouvrir une position longue : {long_quantity} {pair[:-5]} au prix de {long_market_price}$ ~{round(exchange_long_quantity, 2)}$"
