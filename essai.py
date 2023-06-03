@@ -48,11 +48,6 @@ def open_long(row):
         return True
     else:
         return False
-
-    ):
-        return True
-    else:
-        return False
 def close_long(row):
     """
     Condition pour fermer une position longue (vente).
