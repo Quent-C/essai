@@ -1,5 +1,5 @@
 import sys
-sys.path.append("./live_tools")
+sys.path.append('/chemin/vers/repertoire_contenant_utilities')
 import ccxt
 import ta
 import pandas as pd
@@ -15,7 +15,7 @@ current_time = now.strftime("%d/%m/%Y %H:%M:%S")
 print("--- Heure de début d'exécution :", current_time, "---")
 
 # Charger les informations d'authentification à partir d'un fichier secret
-f = open("./live_tools/secret.json")
+f = open(".essai/live_tools/secret.json")
 secret = json.load(f)
 f.close()
 
