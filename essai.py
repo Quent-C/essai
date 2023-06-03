@@ -41,13 +41,13 @@ def open_long(row):
     """
     if (
         row['close'] > row['long_ema']
-        and row['trix'] > 0
-        and row['n1_trix'] > 0
-        and row['n2_trix'] > 0
+        and row['trix'].trix() > 0
+        and row['n1_trix'].trix() > 0
+        and row['n2_trix'].trix() > 0
     ):
         return True
-    return False
-
+    else:
+        return False
 def close_long(row):
     """
     Condition pour fermer une position longue (vente).
