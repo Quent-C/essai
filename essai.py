@@ -152,9 +152,11 @@ else:
         )))
         exchange_long_quantity = long_quantity * long_market_price
         print(
-            f"Passer un ordre d'achat au marché pour ouvrir une position longue : {long_quantity} {pair[:-5]} au prix de {long_market_price}$ ~{round(exchange_long_quantity, 2)}$"
-        if production:
-            bitget.place_market_order(pair, "buy", long_quantity, reduce=False)
+        f"Passer un ordre d'achat au marché pour ouvrir une position longue : {long_quantity} {pair[:-5]} au prix de {long_market_price}$ ~{round(exchange_long_quantity, 2)}$"
+        )
+    if production:
+    bitget.place_market_order(pair, "buy", long_quantity, reduce=False)
+
 
     elif open_short(row) and "short" in type:
         short_market_price = float(df.iloc[-1]["close"])
