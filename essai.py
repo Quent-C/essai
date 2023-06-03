@@ -151,9 +151,8 @@ else:
             bitget.convert_amount_to_precision(pair, long_quantity_in_usd / long_market_price)
         )))
         exchange_long_quantity = long_quantity * long_market_price
-        print(
+        print()
         f"Passer un ordre d'achat au marché pour ouvrir une position longue : {long_quantity} {pair[:-5]} au prix de {long_market_price}$ ~{round(exchange_long_quantity, 2)}$"
-        )
     if production:
     bitget.place_market_order(pair, "buy", long_quantity, reduce=False)
 
