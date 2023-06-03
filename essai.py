@@ -148,12 +148,15 @@ if len(position) > 0:
 
 else:
     print("Aucune position ouverte")
-    if open_long(row) and "long" in type:
+   if open_long(row) and "long" in type:
     long_market_price = float(df.iloc[-1]["close"])
     long_quantity_in_usd = usd_balance * leverage
     long_quantity = float(bitget.convert_amount_to_precision(pair, float(
         bitget.convert_amount_to_precision(pair, long_quantity_in_usd / long_market_price)
     )))
+else:
+    print("Aucune position ouverte")
+
 else:
     print("Aucune position ouverte")
         exchange_long_quantity = long_quantity * long_market_price
