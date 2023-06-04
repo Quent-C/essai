@@ -15,9 +15,8 @@ current_time = now.strftime("%d/%m/%Y %H:%M:%S")
 print("--- Heure de début d'exécution :", current_time, "---")
 
 # Charger les informations d'authentification à partir d'un fichier secret
-f = open("/home/ubuntu/.ssh/essai/secret.json")
-secret = json.load(f)
-f.close()
+with open("/home/ubuntu/.ssh/essai/secret.json") as f:
+    secret = json.load(f)
 
 account_to_select = "bitget_exemple"
 production = True
@@ -28,7 +27,7 @@ leverage = 0.5
 
 print(f"--- {pair} {timeframe} Levier x {leverage} ---")
 
-type = ["long", "short"]
+position_type = ["long", "short"]
 long_ema_window = 500
 short_ema_window = 110
 min_bol_spread = 0
@@ -48,6 +47,7 @@ def open_long(row):
         return True
     else:
         return False
+
 def close_long(row):
     """
     Condition pour fermer une position longue (vente).
@@ -151,12 +151,13 @@ else:
             bitget.convert_amount_to_precision(pair, long_quantity_in_usd / long_market_price)
         )))
         exchange_long_quantity = long_quantity * long_market_price
-        print()
+        print(
             f"Passer un ordre d'achat au marché pour ouvrir une position longue : {long_quantity} {pair[:-5]} au prix de {long_market_price}$ ~{round(exchange_long_quantity, 2)}$"
+        )
         if production:
-        bitget.place_market_order(pair, "buy", long_quantity, reduce=False)
+            bitget.place_market_order(pair, "buy", long_quantity, reduce=False)
 
-    elif open_short(row) and "short" in type:
+    elif open_short(row) and "short" in position_type:
         short_market_price = float(df.iloc[-1]["close"])
         short_quantity_in_usd = usd_balance * leverage
         short_quantity = float(bitget.convert_amount_to_precision(pair, float(
