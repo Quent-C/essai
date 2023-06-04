@@ -43,6 +43,8 @@ def open_long(row):
         and row['trix'].iloc[-1] > 0
         and row['n1_trix'].iloc[-1] > 0
         and row['n2_trix'].iloc[-1] > 0
+):
+
     ):
         return True
     else:
@@ -150,6 +152,7 @@ else:
         long_quantity = float(bitget.convert_amount_to_precision(pair, float(
             bitget.convert_amount_to_precision(pair, long_quantity_in_usd / long_market_price)
         )))
+        
         exchange_long_quantity = long_quantity * long_market_price
         print(
             f"Passer un ordre d'achat au marché pour ouvrir une position longue : {long_quantity} {pair[:-5]} au prix de {long_market_price}$ ~{round(exchange_long_quantity, 2)}$"
