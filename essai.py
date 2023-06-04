@@ -40,10 +40,10 @@ def open_long(row):
     """
     if (
         row['close'] > row['long_ema']
-        and row['trix'].iloc[-1] > 0
-        and row['n1_trix'].iloc[-1] > 0
-        and row['n2_trix'].iloc[-1] > 0
-):
+        and row['trix'] > 0
+        and row['n1_trix'] > 0
+        and row['n2_trix'] > 0
+    ):
         return True
     else:
         return False
@@ -95,82 +95,113 @@ df.drop(columns=df.columns.difference(['open', 'high', 'low', 'close', 'volume']
 df['long_ema'] = ta.trend.ema_indicator(close=df['close'], window=long_ema_window)
 df['short_ema'] = ta.trend.ema_indicator(close=df['close'], window=short_ema_window)
 
-df['trix'] = ta.trend.TRIXIndicator(close=df['close'], window=trix_window)
-df['n1_trix'] = df['trix'].shift(1)
-df['n2_trix'] = df['trix'].shift(2)
+trix = ta.trend.TRIXIndicator(close=df['close'], window=trix_window)
+df['trix'] = trix.trix()
+df['n1_trix'], df['n2_trix'] = get_n_columns(df['trix'], 1, 2)
 
-usd_balance = float(bitget.get_usdt_equity())
-print("Solde en USD :", round(usd_balance, 2), "$")
+# Supprimer les lignes contenant des valeurs manquantes
+df.dropna(inplace=True)
 
+# Récupérer les données de position ouverte
 positions_data = bitget.get_open_position()
-position = [
-    {
-        "side": d["side"],
-        "size": float(d["contracts"]) * float(d["contractSize"]),
-        "market_price": d["info"]["marketPrice"],
-        "usd_size": float(d["contracts"]) * float(d["contractSize"]) * float(d["info"]["marketPrice"])
+
+if positions_data:
+    position = [
+        data
+        for data in positions_data
+        if data['symbol'] == pair and data['side'] in position_type
+    ]
+    if position:
+        print("Solde en USD :", position[0]["unrealisedPnl"], "$")
+        print("Position ouverte :", position[0])
+    else:
+        print("Solde en USD : 0.0 $")
+        print("Aucune position ouverte")
+
+while True:
+    # Récupérer les dernières données de prix
+    latest_data = bitget.get_latest_data(pair, timeframe)
+    latest_close = float(latest_data["close"])
+
+    # Ajouter les dernières données à la DataFrame
+    df.loc[len(df)] = {
+        "open": float(latest_data["open"]),
+        "high": float(latest_data["high"]),
+        "low": float(latest_data["low"]),
+        "close": latest_close,
+        "volume": float(latest_data["volume"])
     }
-    for d in positions_data if d["symbol"] == pair
-]
 
-row = df.iloc[-2]
+    # Calculer les indicateurs techniques pour les dernières données
+    df['long_ema'].iloc[-1] = ta.trend.ema_indicator(close=df['close'], window=long_ema_window).iloc[-1]
+    df['short_ema'].iloc[-1] = ta.trend.ema_indicator(close=df['close'], window=short_ema_window).iloc[-1]
 
-if len(position) > 0:
-    position = position[0]
-    print(f"Position actuelle : {position}")
-    if position["side"] == "long" and close_long(row):
-        close_long_market_price = float(df.iloc[-1]["close"])
-        close_long_quantity = float(
-            bitget.convert_amount_to_precision(pair, position["size"])
-        )
-        exchange_close_long_quantity = close_long_quantity * close_long_market_price
-        print(
-            f"Passer un ordre de vente au marché pour fermer la position longue : {close_long_quantity} {pair[:-5]} au prix de {close_long_market_price}$ ~{round(exchange_close_long_quantity, 2)}$"
-        )
-        if production:
-            bitget.place_market_order(pair, "sell", close_long_quantity, reduce=True)
+    trix = ta.trend.TRIXIndicator(close=df['close'], window=trix_window)
+    df['trix'].iloc[-1] = trix.trix().iloc[-1]
+    df['n1_trix'].iloc[-1], df['n2_trix'].iloc[-1] = get_n_columns(df['trix'], 1, 2)
 
-    if position["side"] == "short" and close_short(row):
-        close_short_market_price = float(df.iloc[-1]["close"])
-        close_short_quantity = float(
-            bitget.convert_amount_to_precision(pair, position["size"])
-        )
-        exchange_close_short_quantity = close_short_quantity * close_short_market_price
-        print(
-            f"Passer un ordre de rachat au marché pour fermer la position courte : {close_short_quantity} {pair[:-5]} au prix de {close_short_market_price}$ ~{round(exchange_close_short_quantity, 2)}$"
-        )
-        if production:
-            bitget.place_market_order(pair, "buy", close_short_quantity, reduce=True)
+    # Supprimer les anciennes lignes pour maintenir la taille de la DataFrame
+    if len(df) > 1000:
+        df.drop(df.index[0], inplace=True)
 
-else:
-    print("Aucune position ouverte")
-    if open_long(row) and "long" in position_type:
-        long_market_price = float(df.iloc[-1]["close"])
-        long_quantity_in_usd = usd_balance * leverage
-        long_quantity = float(bitget.convert_amount_to_precision(pair, float(
-            bitget.convert_amount_to_precision(pair, long_quantity_in_usd / long_market_price)
-        )))
-        
-        exchange_long_quantity = long_quantity * long_market_price
-        print(
-            f"Passer un ordre d'achat au marché pour ouvrir une position longue : {long_quantity} {pair[:-5]} au prix de {long_market_price}$ ~{round(exchange_long_quantity, 2)}$"
-        )
-        if production:
-            bitget.place_market_order(pair, "buy", long_quantity, reduce=False)
+    # Vérifier les conditions pour ouvrir ou fermer des positions
+    if positions_data:
+        position = [
+            data
+            for data in positions_data
+            if data['symbol'] == pair and data['side'] in position_type
+        ]
+        if position:
+            if close_long(df.iloc[-2]) and "long" in position_type:
+                print("Fermeture de la position longue")
+                result = bitget.close_position(pair, position[0]["positionId"], latest_close)
+                if result:
+                    print("Position fermée avec succès")
+                else:
+                    print("Échec de la fermeture de la position")
+            elif close_short(df.iloc[-2]) and "short" in position_type:
+                print("Fermeture de la position courte")
+                result = bitget.close_position(pair, position[0]["positionId"], latest_close)
+                if result:
+                    print("Position fermée avec succès")
+                else:
+                    print("Échec de la fermeture de la position")
+            else:
+                print("Aucune action requise pour les positions ouvertes")
+        else:
+            if open_long(df.iloc[-2]) and "long" in position_type:
+                print("Ouverture d'une position longue")
+                result = bitget.open_position(pair, "buy", latest_close, leverage)
+                if result:
+                    print("Position ouverte avec succès")
+                else:
+                    print("Échec de l'ouverture de la position")
+            elif open_short(df.iloc[-2]) and "short" in position_type:
+                print("Ouverture d'une position courte")
+                result = bitget.open_position(pair, "sell", latest_close, leverage)
+                if result:
+                    print("Position ouverte avec succès")
+                else:
+                    print("Échec de l'ouverture de la position")
+            else:
+                print("Aucune action requise pour les positions fermées")
+    else:
+        if open_long(df.iloc[-2]) and "long" in position_type:
+            print("Ouverture d'une position longue")
+            result = bitget.open_position(pair, "buy", latest_close, leverage)
+            if result:
+                print("Position ouverte avec succès")
+            else:
+                print("Échec de l'ouverture de la position")
+        elif open_short(df.iloc[-2]) and "short" in position_type:
+            print("Ouverture d'une position courte")
+            result = bitget.open_position(pair, "sell", latest_close, leverage)
+            if result:
+                print("Position ouverte avec succès")
+            else:
+                print("Échec de l'ouverture de la position")
+        else:
+            print("Aucune action requise pour les positions fermées")
 
-    elif open_short(row) and "short" in position_type:
-        short_market_price = float(df.iloc[-1]["close"])
-        short_quantity_in_usd = usd_balance * leverage
-        short_quantity = float(bitget.convert_amount_to_precision(pair, float(
-            bitget.convert_amount_to_precision(pair, short_quantity_in_usd / short_market_price)
-        )))
-        exchange_short_quantity = short_quantity * short_market_price
-        print(
-            f"Passer un ordre de vente au marché pour ouvrir une position courte : {short_quantity} {pair[:-5]} au prix de {short_market_price}$ ~{round(exchange_short_quantity, 2)}$"
-        )
-        if production:
-            bitget.place_market_order(pair, "sell", short_quantity, reduce=False)
-
-now = datetime.now()
-current_time = now.strftime("%d/%m/%Y %H:%M:%S")
-print("--- Heure de fin d'exécution :", current_time, "---")
+    # Pause de 1 minute avant la prochaine itération
+    time.sleep(60)
