@@ -44,8 +44,6 @@ def open_long(row):
         and row['n1_trix'].iloc[-1] > 0
         and row['n2_trix'].iloc[-1] > 0
 ):
-
-    ):
         return True
     else:
         return False
